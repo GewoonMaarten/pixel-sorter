@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pixel-sorter"
+version = "1.0.0"
+readme = "README.md"
+dependencies = [
+    "glfw",
+    "imgui[glfw]",
+    "numpy",
+    "pillow",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff"
+]
+
+[tool.ruff.lint]
+select = ["ALL"]
