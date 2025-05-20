@@ -18,16 +18,16 @@ class SortMode(Enum):
     B = "B"
     LUMINANCE = "luminance"
     HUE = "hue"
+    SATURATION = "saturation"
+    VALUE = "value"
 
 
 class SortFunctions:
+    @staticmethod
     def sort_luminance(segment: np.ndarray) -> np.ndarray:
-        return (
-            0.299 * segment[:, 0]
-            + 0.587 * segment[:, 1]
-            + 0.114 * segment[:, 2]
-        )
+        return 0.299 * segment[:, 0] + 0.587 * segment[:, 1] + 0.114 * segment[:, 2]
 
+    @staticmethod
     def sort_hue(segment: np.ndarray) -> np.ndarray:
         rgb = segment.astype(np.float32) / 255.0
         r, g, b = rgb[:, 0], rgb[:, 1], rgb[:, 2]
@@ -55,12 +55,30 @@ class SortFunctions:
 
         return h
 
+    @staticmethod
+    def sort_saturation(segment: np.ndarray) -> np.ndarray:
+        rgb = segment.astype(np.float32) / 255.0
+        maxc = np.max(rgb, axis=1)
+        minc = np.min(rgb, axis=1)
+        delta = maxc - minc
+        s = np.zeros_like(maxc)
+        mask = maxc != 0
+        s[mask] = delta[mask] / maxc[mask]
+        return s
+
+    @staticmethod
+    def sort_value(segment: np.ndarray) -> np.ndarray:
+        rgb = segment.astype(np.float32) / 255.0
+        return np.max(rgb, axis=1)
+
     functions = {
         SortMode.R: lambda seg: seg[:, 0],
         SortMode.G: lambda seg: seg[:, 1],
         SortMode.B: lambda seg: seg[:, 2],
         SortMode.LUMINANCE: sort_luminance,
         SortMode.HUE: sort_hue,
+        SortMode.SATURATION: sort_saturation,
+        SortMode.VALUE: sort_value,
     }
 
 
