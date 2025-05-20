@@ -54,15 +54,13 @@ class GLImage:
             self.texture_id = None
 
 
-def render_image(gl_image: GLImage, name: str = "Image", fit: bool = True):
-    imgui.begin(name)
+def render_image(gl_image: GLImage, fit: bool = True):
     available_w, available_h = imgui.get_content_region_available()
     if fit:
         w, h = gl_image.scale_to_fit(available_w, available_h)
     else:
         w, h = gl_image.width, gl_image.height
     imgui.image(gl_image.texture_id, w, h)
-    imgui.end()
 
 
 def get_image_paths():
@@ -96,6 +94,9 @@ def main():
     mask_gl_image: GLImage | None = None
     sorted_gl_image: GLImage | None = None
 
+    menu_bar_offset = 19
+    padding = 20
+
     while not glfw.window_should_close(window):
         glfw.poll_events()
         impl.process_inputs()
@@ -115,12 +116,28 @@ def main():
                     sys.exit(0)
 
                 imgui.end_menu()
+
+            menu_bar_offset = imgui.get_window_height()
             imgui.end_main_menu_bar()
 
-        imgui.begin("Options")
+        imgui.set_next_window_position(0, menu_bar_offset)
+        imgui.begin(
+            "Options",
+            closable=False,
+            flags=imgui.WINDOW_NO_MOVE
+            | imgui.WINDOW_NO_COLLAPSE
+            | imgui.WINDOW_NO_SCROLLBAR
+            | imgui.WINDOW_ALWAYS_AUTO_RESIZE,
+        )
 
+        if imgui.button("Refresh"):
+            pixel_sorter_image_paths = get_image_paths()
+
+        imgui.same_line()
+
+        imgui.set_next_item_width(-1)
         selected_image_changed, selected_image_index = imgui.combo(
-            "Select Image",
+            "##combo",
             selected_image_index,
             pixel_sorter_image_paths,
         )
@@ -135,8 +152,11 @@ def main():
             original_gl_image = GLImage(pixel_sorter.pil_image)
             mask_gl_image = GLImage(pixel_sorter.mask)
 
-        if imgui.button("Refresh list"):
-            pixel_sorter_image_paths = get_image_paths()
+        imgui.spacing()
+        imgui.separator()
+        imgui.spacing()
+
+        imgui.text("Sorting options")
 
         mask_threshold_changed, mask_threshold_value = imgui.drag_float(
             "Mask threshold",
@@ -146,17 +166,36 @@ def main():
             255,
         )
 
+        if mask_threshold_changed and mask_gl_image:
+            pixel_sorter.set_mask_threshold(mask_threshold_value)
+            mask_gl_image.free_texture()
+            mask_gl_image = GLImage(pixel_sorter.mask)
+
         _, selected_mode_index = imgui.combo(
-            "Sort mode",
+            "Sort Mode",
             selected_mode_index,
             pixel_sorter_mode_values,
         )
 
         _, selected_direction_index = imgui.combo(
-            "Sort direction",
+            "Sort Direction",
             selected_direction_index,
             pixel_sorter_direction_values,
         )
+
+        imgui.spacing()
+        imgui.separator()
+        imgui.spacing()
+
+        if pixel_sorter:
+            imgui.text("Original:")
+            render_image(original_gl_image)
+            imgui.text("Mask:")
+            render_image(mask_gl_image)
+
+        imgui.spacing()
+        imgui.separator()
+        imgui.spacing()
 
         if imgui.button("Sort"):
             if sorted_gl_image:
@@ -164,26 +203,37 @@ def main():
             pixel_sorter_mode = pixel_sorter_modes[selected_mode_index]
             pixel_sorter_direction = pixel_sorter_directions[selected_direction_index]
 
-            pixel_sorter.sort(pixel_sorter_mode, pixel_sorter_direction)
-            sorted_gl_image = GLImage(pixel_sorter.sorted_image)
+            if pixel_sorter:
+                pixel_sorter.sort(pixel_sorter_mode, pixel_sorter_direction)
+                sorted_gl_image = GLImage(pixel_sorter.sorted_image)
 
+        imgui.same_line()
+        
         if imgui.button("Save"):
             output_path = Path("data/output", f"{datetime.now().timestamp()}.png")
             pixel_sorter.save(output_path)
 
+        options_window_width = imgui.get_window_width()
+
         imgui.end()
 
-        if mask_threshold_changed and mask_gl_image:
-            pixel_sorter.set_mask_threshold(mask_threshold_value)
-            mask_gl_image.free_texture()
-            mask_gl_image = GLImage(pixel_sorter.mask)
-
-        if pixel_sorter:
-            render_image(original_gl_image, "Original")
-            render_image(mask_gl_image, "Mask")
-
         if sorted_gl_image:
-            render_image(sorted_gl_image, "Sorted")
+            viewport = imgui.get_main_viewport()
+
+            imgui.set_next_window_position(padding + options_window_width, menu_bar_offset)
+            imgui.set_next_window_size(
+                viewport.size.x - options_window_width - padding * 2,
+                viewport.size.y - menu_bar_offset - padding,
+            )
+            imgui.begin(
+                "Result",
+                flags=imgui.WINDOW_NO_MOVE
+                | imgui.WINDOW_NO_COLLAPSE
+                | imgui.WINDOW_NO_SCROLLBAR
+                | imgui.WINDOW_ALWAYS_AUTO_RESIZE,
+            )
+            render_image(sorted_gl_image)
+            imgui.end()
 
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
 
@@ -224,5 +274,3 @@ def impl_glfw_init():
 
 if __name__ == "__main__":
     main()
-
-    print(get_image_files())
