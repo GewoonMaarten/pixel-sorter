@@ -1,8 +1,6 @@
 import sys
-import tkinter as tk
 from datetime import datetime
 from pathlib import Path
-from tkinter import filedialog
 
 import glfw
 import imgui
@@ -65,22 +63,14 @@ def render_image(gl_image: GLImage, name: str = "Image", fit: bool = True):
     imgui.image(gl_image.texture_id, w, h)
     imgui.end()
 
+def get_image_paths():
+    paths = []
+    for extension in [".png", ".jpg", ".jpeg"]:
+        paths.extend(Path("data", "input").glob(f"**/*{extension}"))
 
-def select_image_file():
-    root = tk.Tk()
-    root.withdraw()
-
-    file_path = filedialog.askopenfilename(
-        title="Select an Image File",
-        filetypes=[
-            ("Image files", "*.png *.jpg *.jpeg *.bmp *.gif"),
-            ("PNG files", "*.png"),
-            ("All files", "*.*"),
-        ],
-    )
-
-    root.destroy()
-    return file_path
+    paths = [str(p) for p in paths]
+    return paths
+        
 
 def main():
     imgui.create_context()
@@ -95,8 +85,10 @@ def main():
         "top-to-bottom",
         "bottom-to-top",
     ]
+    pixel_sorter_image_paths = get_image_paths()
 
     mask_threshold_value: float = 20.0
+    selected_image_index: int = 0
     selected_mode_index: int = 0
     selected_direction_index: int = 0
 
@@ -126,18 +118,25 @@ def main():
             imgui.end_main_menu_bar()
 
         imgui.begin("Options")
+        
+        selected_image_changed, selected_image_index = imgui.combo(
+            "Select Image",
+            selected_image_index,
+            pixel_sorter_image_paths,
+        )
+        if selected_image_changed:
+            input_path = pixel_sorter_image_paths[selected_image_index]
+            pixel_sorter = PixelSorter(input_path, mask_threshold_value)
+            if original_gl_image:
+                original_gl_image.free_texture()
+            if mask_gl_image:
+                mask_gl_image.free_texture()
 
-        if imgui.button("Load Image File"):
-            path = select_image_file()
-            if path:
-                pixel_sorter = PixelSorter(path, mask_threshold_value)
-                if original_gl_image:
-                    original_gl_image.free_texture()
-                if mask_gl_image:
-                    mask_gl_image.free_texture()
+            original_gl_image = GLImage(pixel_sorter.pil_image)
+            mask_gl_image = GLImage(pixel_sorter.mask)
 
-                original_gl_image = GLImage(pixel_sorter.pil_image)
-                mask_gl_image = GLImage(pixel_sorter.mask)
+        if imgui.button("Refresh list"):
+            pixel_sorter_image_paths = get_image_paths()
 
         mask_threshold_changed, mask_threshold_value = imgui.drag_float(
             "Mask threshold",
@@ -225,3 +224,6 @@ def impl_glfw_init():
 
 if __name__ == "__main__":
     main()
+
+
+    print(get_image_files())
