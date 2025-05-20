@@ -8,7 +8,8 @@ import OpenGL.GL as gl
 from imgui.integrations.glfw import GlfwRenderer
 from PIL import Image
 
-from pixel_sorter.pixel_sorter import PixelSorter, SortMode, SortDirection
+from pixel_sorter.pixel_sorter import PixelSorter, SortDirection, SortMode
+
 
 class GLImage:
     def __init__(self, pil_image: Image.Image):
@@ -63,6 +64,7 @@ def render_image(gl_image: GLImage, name: str = "Image", fit: bool = True):
     imgui.image(gl_image.texture_id, w, h)
     imgui.end()
 
+
 def get_image_paths():
     paths = []
     for extension in [".png", ".jpg", ".jpeg"]:
@@ -70,7 +72,7 @@ def get_image_paths():
 
     paths = [str(p) for p in paths]
     return paths
-        
+
 
 def main():
     imgui.create_context()
@@ -116,7 +118,7 @@ def main():
             imgui.end_main_menu_bar()
 
         imgui.begin("Options")
-        
+
         selected_image_changed, selected_image_index = imgui.combo(
             "Select Image",
             selected_image_index,
@@ -222,6 +224,5 @@ def impl_glfw_init():
 
 if __name__ == "__main__":
     main()
-
 
     print(get_image_files())

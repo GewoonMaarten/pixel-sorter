@@ -1,10 +1,10 @@
 import colorsys
+from enum import Enum
 from pathlib import Path
 
 import numpy as np
 from PIL import Image, ImageOps
 
-from enum import Enum
 
 class SortDirection(Enum):
     LEFT_TO_RIGHT = "left-to-right"
@@ -37,7 +37,7 @@ class SortFunctions:
     def sort_hue(segment: np.ndarray) -> np.ndarray:
         norm = segment / 255.0
         return np.array([colorsys.rgb_to_hsv(*pixel)[0] for pixel in norm])
-    
+
     functions = {
         SortMode.R: sort_r,
         SortMode.G: sort_g,
@@ -45,6 +45,7 @@ class SortFunctions:
         SortMode.LUMINANCE: sort_luminance,
         SortMode.HUE: sort_hue,
     }
+
 
 class PixelSorter:
     def __init__(self, path: str, mask_threshold: float) -> None:
@@ -84,8 +85,14 @@ class PixelSorter:
 
         sort_function = self.sort_functions[mode]
 
-        is_vertical = direction in [SortDirection.TOP_TO_BOTTOM, SortDirection.BOTTOM_TO_TOP]
-        is_reverse = direction in [SortDirection.RIGHT_TO_LEFT, SortDirection.BOTTOM_TO_TOP]
+        is_vertical = direction in [
+            SortDirection.TOP_TO_BOTTOM,
+            SortDirection.BOTTOM_TO_TOP,
+        ]
+        is_reverse = direction in [
+            SortDirection.RIGHT_TO_LEFT,
+            SortDirection.BOTTOM_TO_TOP,
+        ]
 
         if is_vertical:
             img_array = img_array.transpose((1, 0, 2))  # (width, height, rgb)
