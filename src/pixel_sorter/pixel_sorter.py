@@ -1,4 +1,3 @@
-import colorsys
 from enum import Enum
 from pathlib import Path
 
@@ -22,26 +21,44 @@ class SortMode(Enum):
 
 
 class SortFunctions:
-    def sort_r(segment: np.ndarray) -> np.ndarray:
-        return segment[:, 0]
-
-    def sort_g(segment: np.ndarray) -> np.ndarray:
-        return segment[:, 1]
-
-    def sort_b(segment: np.ndarray) -> np.ndarray:
-        return segment[:, 2]
-
     def sort_luminance(segment: np.ndarray) -> np.ndarray:
-        return 0.299 * segment[:, 0] + 0.587 * segment[:, 1] + 0.114 * segment[:, 2]
+        return (
+            0.299 * segment[:, 0]
+            + 0.587 * segment[:, 1]
+            + 0.114 * segment[:, 2]
+        )
 
     def sort_hue(segment: np.ndarray) -> np.ndarray:
-        norm = segment / 255.0
-        return np.array([colorsys.rgb_to_hsv(*pixel)[0] for pixel in norm])
+        rgb = segment.astype(np.float32) / 255.0
+        r, g, b = rgb[:, 0], rgb[:, 1], rgb[:, 2]
+
+        maxc = np.maximum.reduce([r, g, b])
+        minc = np.minimum.reduce([r, g, b])
+        delta = (maxc - minc) + 0.0001
+
+        h = np.zeros_like(maxc)
+        mask = delta != 0
+
+        rc = ((g - b) / delta) % 6
+        gc = ((b - r) / delta) + 2
+        bc = ((r - g) / delta) + 4
+
+        rmask = (maxc == r) & mask
+        gmask = (maxc == g) & mask
+        bmask = (maxc == b) & mask
+
+        h[rmask] = rc[rmask]
+        h[gmask] = gc[gmask]
+        h[bmask] = bc[bmask]
+
+        h = (h / 6.0) % 1.0
+
+        return h
 
     functions = {
-        SortMode.R: sort_r,
-        SortMode.G: sort_g,
-        SortMode.B: sort_b,
+        SortMode.R: lambda seg: seg[:, 0],
+        SortMode.G: lambda seg: seg[:, 1],
+        SortMode.B: lambda seg: seg[:, 2],
         SortMode.LUMINANCE: sort_luminance,
         SortMode.HUE: sort_hue,
     }
