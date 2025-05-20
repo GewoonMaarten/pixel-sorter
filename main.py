@@ -8,7 +8,7 @@ import OpenGL.GL as gl
 from imgui.integrations.glfw import GlfwRenderer
 from PIL import Image
 
-from pixel_sorter.pixel_sorter import PixelSorter
+from pixel_sorter.pixel_sorter import PixelSorter, SortMode, SortDirection
 
 class GLImage:
     def __init__(self, pil_image: Image.Image):
@@ -78,13 +78,11 @@ def main():
     impl = GlfwRenderer(window)
 
     pixel_sorter: PixelSorter | None = None
-    pixel_sorter_modes = ["R", "G", "B", "luminance", "hue"]
-    pixel_sorter_directions = [
-        "left-to-right",
-        "right-to-left",
-        "top-to-bottom",
-        "bottom-to-top",
-    ]
+    pixel_sorter_mode_values = [m.value for m in SortMode]
+    pixel_sorter_modes = list(SortMode)
+    pixel_sorter_direction_values = [d.value for d in SortDirection]
+    pixel_sorter_directions = list(SortDirection)
+
     pixel_sorter_image_paths = get_image_paths()
 
     mask_threshold_value: float = 20.0
@@ -149,13 +147,13 @@ def main():
         _, selected_mode_index = imgui.combo(
             "Sort mode",
             selected_mode_index,
-            pixel_sorter_modes,
+            pixel_sorter_mode_values,
         )
 
         _, selected_direction_index = imgui.combo(
             "Sort direction",
             selected_direction_index,
-            pixel_sorter_directions,
+            pixel_sorter_direction_values,
         )
 
         if imgui.button("Sort"):
