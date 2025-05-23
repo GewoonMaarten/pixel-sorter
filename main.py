@@ -85,7 +85,9 @@ def main():
 
     pixel_sorter_image_paths = get_image_paths()
 
+    selected_mask_index: int = 0
     mask_threshold_value: float = 20.0
+    invert_mask: bool = False
     selected_image_index: int = 0
     selected_mode_index: int = 0
     selected_direction_index: int = 0
@@ -142,43 +144,62 @@ def main():
             pixel_sorter_image_paths,
         )
         if selected_image_changed:
+            mask_function = pixel_sorter_modes[selected_mask_index]
             input_path = pixel_sorter_image_paths[selected_image_index]
-            pixel_sorter = PixelSorter(input_path, mask_threshold_value)
+            pixel_sorter = PixelSorter(input_path)
+            pixel_sorter.create_mask(mask_function, mask_threshold_value, invert_mask)
             if original_gl_image:
                 original_gl_image.free_texture()
             if mask_gl_image:
                 mask_gl_image.free_texture()
 
             original_gl_image = GLImage(pixel_sorter.pil_image)
-            mask_gl_image = GLImage(pixel_sorter.mask)
+            mask_gl_image = GLImage(pixel_sorter.mask_image)
 
         imgui.spacing()
         imgui.separator()
         imgui.spacing()
 
-        imgui.text("Sorting options")
+        imgui.spacing()
+        imgui.text("Mask options:")
+
+        selected_mask_changed, selected_mask_index = imgui.combo(
+            "Function###mask",
+            selected_mask_index,
+            pixel_sorter_mode_values,
+        )
 
         mask_threshold_changed, mask_threshold_value = imgui.drag_float(
-            "Mask threshold",
+            "Threshold",
             mask_threshold_value,
             1,
             0,
             255,
         )
 
-        if mask_threshold_changed and mask_gl_image:
-            pixel_sorter.set_mask_threshold(mask_threshold_value)
+        invert_mask_changed, invert_mask = imgui.checkbox("Invert", invert_mask)
+
+        imgui.spacing()
+        imgui.text("Sorting options:")
+
+        if pixel_sorter and (
+            selected_mask_changed
+            or mask_threshold_changed
+            or invert_mask_changed
+        ):
+            mask_function = pixel_sorter_modes[selected_mask_index]
+            pixel_sorter.create_mask(mask_function, mask_threshold_value, invert_mask)
             mask_gl_image.free_texture()
-            mask_gl_image = GLImage(pixel_sorter.mask)
+            mask_gl_image = GLImage(pixel_sorter.mask_image)
 
         _, selected_mode_index = imgui.combo(
-            "Sort Mode",
+            "Function###sort",
             selected_mode_index,
             pixel_sorter_mode_values,
         )
 
         _, selected_direction_index = imgui.combo(
-            "Sort Direction",
+            "Direction",
             selected_direction_index,
             pixel_sorter_direction_values,
         )
